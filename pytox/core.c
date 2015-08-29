@@ -105,6 +105,110 @@ static void callback_friend_connection_status(Tox *tox, uint32_t friendnumber,
       friendnumber, PyBool_FromLong(status));
 }
 
+#ifndef LEGACY_GROUPCHATS
+
+static void callback_group_peer_name(Tox *tox, uint32_t group_number, uint32_t peer_number,
+                                     const uint8_t *name, size_t length, void *self)
+{
+  PyObject_CallMethod((PyObject*)self, "on_group_peer_name", "iis#",
+                      group_number, peer_number, name, length);
+}
+
+static void callback_group_peer_status(Tox *tox, uint32_t group_number, uint32_t peer_number,
+                                       TOX_USER_STATUS status, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_peer_name", "iii",
+                        group_number, peer_number, status);
+}
+
+static void callback_group_topic(Tox *tox, uint32_t group_number, uint32_t peer_number,
+                                 const uint8_t *topic, size_t length, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_topic", "iis#",
+                        group_number, peer_number, topic, length);
+}
+
+static void callback_group_privacy_state(Tox *tox, uint32_t group_number, TOX_GROUP_PRIVACY_STATE privacy_state,
+                                         void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_privacy_state", "ii",
+                        group_number, privacy_state);
+}
+
+static void callback_group_peer_limit(Tox *tox, uint32_t group_number, uint32_t peer_limit,
+                                      void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_peer_limit", "ii",
+                        group_number, peer_limit);
+}
+
+static void callback_group_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
+                                      void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_password", "is#",
+                        group_number, password, length);
+}
+
+static void callback_group_peerlist_update(Tox *tox, uint32_t group_number, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_peerlist_update", "i", group_number);
+}
+
+static void callback_group_message(Tox *tox, uint32_t group_number, uint32_t peer_number, TOX_MESSAGE_TYPE type,
+                                   const uint8_t *message, size_t length, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_message", "iiis#",
+                        group_number, peer_number, type, message, length);
+}
+
+static void callback_group_private_message(Tox *tox, uint32_t group_number, uint32_t peer_number,
+                                   const uint8_t *message, size_t length, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_private_message", "iis#",
+                        group_number, peer_number, message, length);
+}
+
+static void callback_group_invite(Tox *tox, uint32_t group_number, const uint8_t *invite_data, size_t length,
+                                  void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_invite", "is#",
+                        group_number, invite_data, length);
+}
+
+static void callback_group_peer_join(Tox *tox, uint32_t group_number, uint32_t peer_number, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_peer_join", "ii",
+                        group_number, peer_number);
+}
+
+static void callback_group_peer_exit(Tox *tox, uint32_t group_number, uint32_t peer_number,
+                                     const uint8_t *part_message, size_t length, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_peer_exit", "iis#",
+                        group_number, peer_number, part_message, length);
+}
+
+static void callback_group_self_join(Tox *tox, uint32_t group_number, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_self_join", "i",
+                        group_number);
+}
+
+static void callback_group_join_fail(Tox *tox, uint32_t group_number, TOX_GROUP_JOIN_FAIL fail_type, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_join_fail", "ii",
+                        group_number, fail_type);
+}
+
+static void callback_group_moderation(Tox *tox, uint32_t group_number, uint32_t source_peer_number,
+                                     uint32_t target_peer_number, TOX_GROUP_MOD_EVENT mod_type, void *self)
+{
+    PyObject_CallMethod((PyObject*)self, "on_group_moderation", "iiii",
+                        group_number, source_peer_number, target_peer_number, mod_type);
+}
+
+
+#else
 // TODO old api
 static void callback_group_invite(Tox *tox, int32_t friendnumber, uint8_t type,
     const uint8_t *data, uint16_t length, void *self)
@@ -133,7 +237,7 @@ static void callback_group_namelist_change(Tox *tox, int groupid,
   PyObject_CallMethod((PyObject*)self, "on_group_namelist_change", "iii",
       groupid, peernumber, change);
 }
-
+#endif  // -DNEW_GROUPCHATS
 static void callback_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_number,
                                         uint64_t position, size_t length, void *self)
 {
@@ -298,10 +402,31 @@ static int init_helper(ToxCore* self, PyObject* args)
   tox_callback_friend_read_receipt(tox, callback_read_receipt, self);
   // tox_callback_connection_status(tox, callback_connection_status, self);
   tox_callback_friend_connection_status(tox, callback_friend_connection_status, self);
+
+#ifndef LEGACY_GROUPCHATS
+
+  tox_callback_group_peer_name(tox, callback_group_peer_name, self);
+  tox_callback_group_peer_status(tox, callback_group_peer_status, self);
+  tox_callback_group_topic(tox, callback_group_topic, self);
+  tox_callback_group_privacy_state(tox, callback_group_privacy_state, self);
+  tox_callback_group_peer_limit(tox, callback_group_peer_limit, self);
+  tox_callback_group_password(tox, callback_group_password, self);
+  tox_callback_group_peerlist_update(tox, callback_group_peerlist_update, self);
+  tox_callback_group_message(tox, callback_group_message, self);
+  tox_callback_group_private_message(tox, callback_group_private_message, self);
+  tox_callback_group_invite(tox, callback_group_invite, self);
+  tox_callback_group_peer_join(tox, callback_group_peer_join, self);
+  tox_callback_group_peer_exit(tox, callback_group_peer_exit, self);
+  tox_callback_group_self_join(tox, callback_group_self_join, self);
+  tox_callback_group_join_fail(tox, callback_group_join_fail, self);
+  tox_callback_group_moderation(tox, callback_group_moderation, self);
+  
+#else
   tox_callback_group_invite(tox, callback_group_invite, self);
   tox_callback_group_message(tox, callback_group_message, self);
   tox_callback_group_action(tox, callback_group_action, self);
   tox_callback_group_namelist_change(tox, callback_group_namelist_change, self);
+#endif // -DNEW_GROUPCHATS
   // tox_callback_file_send_request(tox, callback_file_send_request, self);
   // tox_callback_file_control(tox, callback_file_control, self);
   // tox_callback_file_data(tox, callback_file_data, self);
@@ -943,6 +1068,954 @@ ToxCore_self_get_friend_list(ToxCore* self, PyObject* args)
   return plist;
 }
 
+#ifndef LEGACY_GROUPCHATS
+
+static PyObject*
+ToxCore_group_new(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  int privacy_state = 0;
+  uint8_t* group_name = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "is#", &privacy_state, group_name, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_NEW err = 0;
+  uint32_t group_number = tox_group_new(self->tox, privacy_state, group_name, length, &err);
+  if (group_number == UINT32_MAX) {
+      PyErr_Format(ToxOpError, "failed to group new: %d", err);
+  }
+
+  return PyLong_FromLong(group_number);
+}
+
+static PyObject*
+ToxCore_group_join(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint8_t *chat_id = NULL;
+  uint8_t *password = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "ss#", chat_id, password, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_JOIN err = 0;
+  uint32_t group_number = tox_group_join(self->tox, chat_id, password, length, &err);
+  if (group_number == UINT32_MAX) {
+      PyErr_Format(ToxOpError, "failed to group join: %d", err);
+  }
+
+  return PyLong_FromLong(group_number);
+}
+
+static PyObject*
+ToxCore_group_reconnect(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_RECONNECT err = 0;
+  bool ret = tox_group_reconnect(self->tox, group_number, &err);
+  if (!ret) {
+      PyErr_Format(ToxOpError, "failed to group reconnect: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_leave(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint8_t *message = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "is#", &group_number, message, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_LEAVE err = 0;
+  bool ret = tox_group_leave(self->tox, group_number, message, length, &err);
+  if (!ret) {
+      PyErr_Format(ToxOpError, "failed to group leave: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_self_set_name(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint8_t *name = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "is#", &group_number, name, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_LEAVE err = 0;
+  bool ret = tox_group_self_set_name(self->tox, group_number, name, length, &err);
+  if (!ret) {
+      PyErr_Format(ToxOpError, "failed to group self set name: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_self_get_name_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SELF_QUERY err = 0;
+  uint32_t ret = tox_group_self_get_name_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_SELF_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group self get name size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_self_get_name(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_GROUP_MAX_GROUP_NAME_LENGTH];
+  memset(buf, 0, TOX_GROUP_MAX_GROUP_NAME_LENGTH);
+  
+  TOX_ERR_GROUP_SELF_QUERY err = 0;
+  bool ret = tox_group_self_get_name(self->tox, group_number, buf, &err);
+  if (err != TOX_ERR_GROUP_SELF_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group self get name: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_self_set_status(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t status = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &status)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SELF_STATUS_SET err = 0;
+  bool ret = tox_group_self_set_status(self->tox, group_number, status, &err);
+  if (!ret) {
+      PyErr_Format(ToxOpError, "failed to group self set status: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_self_get_status(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  TOX_USER_STATUS status = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SELF_QUERY err = 0;
+  status = tox_group_self_get_status(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_SELF_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group self get status: %d", err);
+  }
+
+  return PyLong_FromLong(status);
+}
+
+static PyObject*
+ToxCore_group_self_get_role(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  TOX_GROUP_ROLE role = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SELF_QUERY err = 0;
+  role = tox_group_self_get_role(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_SELF_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group self get role: %d", err);
+  }
+
+  return PyLong_FromLong(role);
+}
+
+static PyObject*
+ToxCore_group_peer_get_name_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &peer_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_PEER_QUERY err = 0;
+  uint32_t ret = tox_group_peer_get_name_size(self->tox, group_number, peer_number, &err);
+  if (err != TOX_ERR_GROUP_PEER_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group peer get name size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_peer_get_name(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &peer_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_MAX_NAME_LENGTH];
+  memset(buf, 0, TOX_MAX_NAME_LENGTH);
+  
+  TOX_ERR_GROUP_PEER_QUERY err = 0;
+  bool ret = tox_group_peer_get_name(self->tox, group_number, peer_number, buf, &err);
+  if (err != TOX_ERR_GROUP_PEER_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group peer get name: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_peer_get_status(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint32_t status = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &peer_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_PEER_QUERY err = 0;
+  status = tox_group_peer_get_status(self->tox, group_number, peer_number, &err);
+  if (err != TOX_ERR_GROUP_PEER_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group peer get status: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(status);
+}
+
+static PyObject*
+ToxCore_group_peer_get_role(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint32_t role = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &peer_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_PEER_QUERY err = 0;
+  role = tox_group_peer_get_role(self->tox, group_number, peer_number, &err);
+  if (err != TOX_ERR_GROUP_PEER_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group peer get role: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(role);
+}
+
+static PyObject*
+ToxCore_group_set_topic(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint8_t *topic = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "is#", &group_number, topic, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_TOPIC_SET err = 0;
+  bool ret = tox_group_set_topic(self->tox, group_number, topic, length, &err);
+  if (err != TOX_ERR_GROUP_TOPIC_SET_OK) {
+      PyErr_Format(ToxOpError, "failed to group set topic: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_topic_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  uint32_t ret = tox_group_get_topic_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get topic size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_topic(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_GROUP_MAX_TOPIC_LENGTH];
+  memset(buf, 0, TOX_GROUP_MAX_TOPIC_LENGTH);
+  
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  bool ret = tox_group_get_topic(self->tox, group_number, buf, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get topic: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_get_name_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  uint32_t ret = tox_group_get_name_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get name size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_name(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_GROUP_MAX_GROUP_NAME_LENGTH];
+  memset(buf, 0, TOX_GROUP_MAX_GROUP_NAME_LENGTH);
+  
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  bool ret = tox_group_get_name(self->tox, group_number, buf, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get name: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_get_chat_id(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_GROUP_CHAT_ID_SIZE];
+  memset(buf, 0, TOX_GROUP_CHAT_ID_SIZE);
+  
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  bool ret = tox_group_get_chat_id(self->tox, group_number, buf, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get chat id: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_get_number_peers(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  uint32_t ret = tox_group_get_number_peers(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get number peers: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_number_groups(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t ret = tox_group_get_number_groups(self->tox);
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_privacy_state(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  TOX_GROUP_PRIVACY_STATE ret = tox_group_get_number_peers(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get privacy state: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_peer_limit(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  uint32_t ret = tox_group_get_peer_limit(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get peer limit: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+size_t tox_group_get_password_size(const Tox *tox, uint32_t groupnumber, TOX_ERR_GROUP_STATE_QUERIES *error);
+static PyObject*
+ToxCore_group_get_password_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  uint32_t ret = tox_group_get_password_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get password size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_get_password(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  uint8_t buf[TOX_GROUP_MAX_PASSWORD_SIZE];
+  memset(buf, 0, TOX_GROUP_MAX_PASSWORD_SIZE);
+  
+  TOX_ERR_GROUP_STATE_QUERIES err = 0;
+  bool ret = tox_group_get_password(self->tox, group_number, buf, &err);
+  if (err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
+      PyErr_Format(ToxOpError, "failed to group get password: %d", err);
+      return NULL;
+  }
+
+  return PYSTRING_FromString((const char*)buf);
+}
+
+static PyObject*
+ToxCore_group_send_message(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t type = 0;
+  uint8_t *message = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "iis#", &group_number, &type, message, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SEND_MESSAGE err = 0;
+  bool ret = tox_group_send_message(self->tox, group_number, type, message, length, &err);
+  if (err != TOX_ERR_GROUP_SEND_MESSAGE_OK) {
+      PyErr_Format(ToxOpError, "failed to group send message: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_send_private_message(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint8_t *message = NULL;
+  uint32_t length = 0;
+  
+  if (!PyArg_ParseTuple(args, "iis#", &group_number, &peer_number, message, &length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE err = 0;
+  bool ret = tox_group_send_private_message(self->tox, group_number, peer_number, message, length, &err);
+  if (err != TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK) {
+      PyErr_Format(ToxOpError, "failed to group send private message: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_invite_friend(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t friend_number = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &friend_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_INVITE_FRIEND err = 0;
+  bool ret = tox_group_send_invite_friend(self->tox, group_number, friend_number, &err);
+  if (err != TOX_ERR_GROUP_INVITE_FRIEND_OK) {
+      PyErr_Format(ToxOpError, "failed to group invite friend: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_invite_accept(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint8_t *invite_data = NULL;
+  uint32_t invite_data_length = 0;
+  uint8_t *password = NULL;
+  uint32_t password_length = 0;
+  
+  if (!PyArg_ParseTuple(args, "s#s#", invite_data, &invite_data_length, password, &password_length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_INVITE_ACCEPT err = 0;
+  bool ret = tox_group_send_invite_accept(self->tox, invite_data, invite_data_length, password, password_length, &err);
+  if (err != TOX_ERR_GROUP_INVITE_ACCEPT_OK) {
+      PyErr_Format(ToxOpError, "failed to group invite accept: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_founder_set_password(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint8_t *password = NULL;
+  uint32_t password_length = 0;
+  
+  if (!PyArg_ParseTuple(args, "is#", &group_number, password, &password_length)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_FOUNDER_SET_PASSWORD err = 0;
+  bool ret = tox_group_founder_set_password(self->tox, group_number, password, password_length, &err);
+  if (err != TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK) {
+      PyErr_Format(ToxOpError, "failed to group founder set password: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_founder_set_privacy_state(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  TOX_GROUP_PRIVACY_STATE privacy_state = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &privacy_state)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE err = 0;
+  bool ret = tox_group_founder_set_privacy_state(self->tox, group_number, privacy_state, &err);
+  if (err != TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK) {
+      PyErr_Format(ToxOpError, "failed to group founder set privacy state: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_founder_set_peer_limit(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t max_peers = 0;
+  
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &max_peers)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT err = 0;
+  bool ret = tox_group_founder_set_peer_limit(self->tox, group_number, max_peers, &err);
+  if (err != TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK) {
+      PyErr_Format(ToxOpError, "failed to group founder set privacy state: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_toggle_ignore(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint32_t ignore = 0;
+
+  if (!PyArg_ParseTuple(args, "iii", &group_number, &peer_number, &ignore)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_TOGGLE_IGNORE err = 0;
+  bool ret = tox_group_toggle_ignore(self->tox, group_number, peer_number, ignore, &err);
+  if (err != TOX_ERR_GROUP_TOGGLE_IGNORE_OK) {
+      PyErr_Format(ToxOpError, "failed to group toggle ignore: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_mod_set_role(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint32_t role = 0;
+
+  if (!PyArg_ParseTuple(args, "iii", &group_number, &peer_number, &role)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_MOD_SET_ROLE err = 0;
+  bool ret = tox_group_mod_set_role(self->tox, group_number, peer_number, role, &err);
+  if (err != TOX_ERR_GROUP_MOD_SET_ROLE_OK) {
+      PyErr_Format(ToxOpError, "failed to group mod set role: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_mod_remove_peer(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t peer_number = 0;
+  uint32_t set_ban = 0;
+
+  if (!PyArg_ParseTuple(args, "iii", &group_number, &peer_number, &set_ban)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_MOD_REMOVE_PEER err = 0;
+  bool ret = tox_group_mod_remove_peer(self->tox, group_number, peer_number, set_ban, &err);
+  if (err != TOX_ERR_GROUP_MOD_REMOVE_PEER_OK) {
+      PyErr_Format(ToxOpError, "failed to group mod remove peer: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_mod_remove_ban(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t ban_id = 0;
+
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &ban_id)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_MOD_REMOVE_BAN err = 0;
+  bool ret = tox_group_mod_remove_ban(self->tox, group_number, ban_id, &err);
+  if (err != TOX_ERR_GROUP_MOD_REMOVE_BAN_OK) {
+      PyErr_Format(ToxOpError, "failed to group mod remove peer: %d", err);
+  }
+
+  return PyBool_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_ban_get_list_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_BAN_QUERY err = 0;
+  uint32_t ret = tox_group_ban_get_list_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get list size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_ban_get_list(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+
+  if (!PyArg_ParseTuple(args, "i", &group_number)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_BAN_QUERY err = 0;
+  
+  uint32_t n = tox_group_ban_get_list_size(self->tox, group_number, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get list size: %d", err);
+      return NULL;
+  }
+  
+  uint32_t* list = (uint32_t*)malloc(n * sizeof(uint32_t));
+
+  bool ret = tox_group_ban_get_list(self->tox, group_number, list, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get list: %d", err);
+      return NULL;
+  }
+  
+  PyObject* plist = NULL;  
+  if (!(plist = PyList_New(0))) {
+      return NULL;
+  }
+  
+  uint32_t i = 0;
+  for (i = 0; i < n; ++i) {
+      PyList_Append(plist, PyLong_FromLong(list[i]));
+  }
+  free(list);
+  
+  return plist;
+}
+
+static PyObject*
+ToxCore_group_ban_get_name_size(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t ban_id = 0;
+
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &ban_id)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_BAN_QUERY err = 0;
+  uint32_t ret = tox_group_ban_get_name_size(self->tox, group_number, ban_id, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get name size: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+static PyObject*
+ToxCore_group_ban_get_name(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t ban_id = 0;
+
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &ban_id)) {
+    return NULL;
+  }
+  
+  TOX_ERR_GROUP_BAN_QUERY err = 0;
+  uint32_t sz = tox_group_ban_get_name_size(self->tox, group_number, ban_id, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get name size: %d", err);
+      return NULL;
+  }
+
+  uint8_t *buf = (uint8_t*)malloc(sz + 1);
+  memset(buf, 0, sz + 1);
+  
+  bool ret = tox_group_ban_get_name(self->tox, group_number, ban_id, buf, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get name: %d", err);
+      return NULL;
+  }
+
+  PyObject *name = PYSTRING_FromString((const char*)buf);
+  free(buf);
+  return name;
+}
+
+static PyObject*
+ToxCore_group_ban_get_time_set(ToxCore* self, PyObject* args)
+{
+  CHECK_TOX(self);
+
+  uint32_t group_number = 0;
+  uint32_t ban_id = 0;
+
+  if (!PyArg_ParseTuple(args, "ii", &group_number, &ban_id)) {
+    return NULL;
+  }
+
+  TOX_ERR_GROUP_BAN_QUERY err = 0;
+  uint64_t ret = tox_group_ban_get_time_set(self->tox, group_number, ban_id, &err);
+  if (err != TOX_ERR_GROUP_BAN_QUERY_OK) {
+      PyErr_Format(ToxOpError, "failed to group ban get time set: %d", err);
+      return NULL;
+  }
+
+  return PyLong_FromLong(ret);
+}
+
+
+#else
 static PyObject*
 ToxCore_add_groupchat(ToxCore* self, PyObject* args)
 {
@@ -1221,7 +2294,7 @@ ToxCore_get_chatlist(ToxCore* self, PyObject* args)
 
   return plist;
 }
-
+#endif // -DNEW_GROUPCHATS
 static PyObject*
 ToxCore_file_send(ToxCore* self, PyObject*args)
 {
@@ -2029,6 +3102,221 @@ PyMethodDef Tox_methods[] = {
     "self_get_friend_list()\n"
     "Get a list of valid friend numbers."
   },
+#ifndef LEGACY_GROUPCHATS
+
+  {
+    "group_new", (PyCFunction)ToxCore_group_new, METH_VARARGS,
+    "group_new(privacy_state, group_name)\n"
+    "Create a new group for group_name."
+  },
+  {
+    "group_join", (PyCFunction)ToxCore_group_join, METH_VARARGS,
+    "group_join(chat_id, password)\n"
+    "Join a group for group_name."
+  },
+  {
+    "group_reconnect", (PyCFunction)ToxCore_group_reconnect, METH_VARARGS,
+    "group_reconnect(group_number)\n"
+    "Reconnects to a group."
+  },
+  {
+    "group_leave", (PyCFunction)ToxCore_group_leave, METH_VARARGS,
+    "group_leave(group_number, message)\n"
+    "Reconnects to a group."
+  },
+  {
+    "group_self_set_name", (PyCFunction)ToxCore_group_self_set_name, METH_VARARGS,
+    "group_self_set_name(group_number, name)\n"
+    "Set the client's nickname for the group instance designated by the given group number."
+  },
+  {
+    "group_self_get_name_size", (PyCFunction)ToxCore_group_self_get_name_size, METH_VARARGS,
+    "group_self_get_name_size(group_number)\n"
+    "Return the length of the client's current nickname."
+  },
+  {
+    "group_self_get_name", (PyCFunction)ToxCore_group_self_get_name, METH_VARARGS,
+    "group_self_get_name(group_number)\n"
+    "Return the nickname."
+  },
+  {
+    "group_self_set_status", (PyCFunction)ToxCore_group_self_set_status, METH_VARARGS,
+    "group_self_set_status(group_number, status)\n"
+    "Set the client's status for the group instance."
+  },
+  {
+    "group_self_get_status", (PyCFunction)ToxCore_group_self_get_status, METH_VARARGS,
+    "group_self_get_status(group_number)\n"
+    "Get the client's status for the group instance."
+  },
+  {
+    "group_self_get_role", (PyCFunction)ToxCore_group_self_get_role, METH_VARARGS,
+    "group_self_get_role(group_number)\n"
+    "Get the client's role for the group instance."
+  },
+  {
+    "group_peer_get_name_size", (PyCFunction)ToxCore_group_peer_get_name_size, METH_VARARGS,
+    "group_peer_get_name_size(group_number, peer_number)\n"
+    "Return the length of the peer's name."
+  },
+  {
+    "group_peer_get_name", (PyCFunction)ToxCore_group_peer_get_name, METH_VARARGS,
+    "group_peer_get_name(group_number, peer_number)\n"
+    "Return the peer's name."
+  },
+  {
+    "group_peer_get_status", (PyCFunction)ToxCore_group_peer_get_status, METH_VARARGS,
+    "group_peer_get_status(group_number, peer_number)\n"
+    "Return the peer's status."
+  },
+  {
+    "group_peer_get_role", (PyCFunction)ToxCore_group_peer_get_role, METH_VARARGS,
+    "group_peer_get_role(group_number, peer_number)\n"
+    "Return the peer's role."
+  },
+  {
+    "group_set_topic", (PyCFunction)ToxCore_group_set_topic, METH_VARARGS,
+    "group_set_topic(group_number, topic)\n"
+    "Set the group topic and broadcast it to the rest of the group."
+  },
+  {
+    "group_get_topic_size", (PyCFunction)ToxCore_group_get_topic_size, METH_VARARGS,
+    "group_get_topic_size(group_number)\n"
+    "Get the length group's topic."
+  },
+  {
+    "group_get_topic", (PyCFunction)ToxCore_group_get_topic, METH_VARARGS,
+    "group_get_topic(group_number)\n"
+    "Get the group's topic."
+  },
+  {
+    "group_get_name_size", (PyCFunction)ToxCore_group_get_name_size, METH_VARARGS,
+    "group_get_name_size(group_number)\n"
+    "Get the length group's name."
+  },
+  {
+    "group_get_name", (PyCFunction)ToxCore_group_get_name, METH_VARARGS,
+    "group_get_name(group_number)\n"
+    "Get the group's name."
+  },
+  {
+    "group_get_chat_id", (PyCFunction)ToxCore_group_get_chat_id, METH_VARARGS,
+    "group_get_chat_id(group_number)\n"
+    "Get the group's chat id."
+  },
+  {
+    "group_get_number_peers", (PyCFunction)ToxCore_group_get_number_peers, METH_VARARGS,
+    "group_get_number_peers(group_number)\n"
+    "Returns the number of peers in the group."
+  },
+  {
+    "group_get_number_groups", (PyCFunction)ToxCore_group_get_number_groups, METH_VARARGS,
+    "group_get_number_groups()\n"
+    "Return the number of groups in the Tox chats array."
+  },
+  {
+    "group_get_privacy_state", (PyCFunction)ToxCore_group_get_privacy_state, METH_VARARGS,
+    "group_get_privacy_state(group_number)\n"
+    "Return the privacy state of the group."
+  },
+  {
+    "group_get_peer_limit", (PyCFunction)ToxCore_group_get_peer_limit, METH_VARARGS,
+    "group_get_peer_limit(group_number)\n"
+    "Return the maximum number of peers allowed for the group."
+  },
+  {
+    "group_get_password_size", (PyCFunction)ToxCore_group_get_password_size, METH_VARARGS,
+    "group_get_password_size(group_number)\n"
+    "Return the length of the group password."
+  },
+  {
+    "group_get_password", (PyCFunction)ToxCore_group_get_password, METH_VARARGS,
+    "group_get_password(group_number)\n"
+    "Return the group password."
+  },
+  {
+    "group_send_message", (PyCFunction)ToxCore_group_send_message, METH_VARARGS,
+    "group_send_message(group_number, type, message)\n"
+    "Send a text chat message to the entire group."
+  },
+  {
+    "group_send_private_message", (PyCFunction)ToxCore_group_send_private_message, METH_VARARGS,
+    "group_send_private_message(group_number, peer_number, message)\n"
+    "Send a text chat message to the specified peer in the specified group."
+  },
+  {
+    "group_invite_friend", (PyCFunction)ToxCore_group_invite_friend, METH_VARARGS,
+    "group_invite_friend(group_number, friend_number)\n"
+    "Invite a friend to a group."
+  },
+  {
+    "group_invite_accept", (PyCFunction)ToxCore_group_invite_accept, METH_VARARGS,
+    "group_invite_accept(invite_data, password)\n"
+    "Invite a friend to a group."
+  },
+  {
+    "group_founder_set_password", (PyCFunction)ToxCore_group_founder_set_password, METH_VARARGS,
+    "group_founder_set_password(group_number, password)\n"
+    "Set or unset the group password."
+  },
+  {
+    "group_founder_set_privacy_state", (PyCFunction)ToxCore_group_founder_set_privacy_state, METH_VARARGS,
+    "group_founder_set_privacy_state(group_number, privacy_state)\n"
+    "Set the group privacy state."
+  },
+  {
+    "group_founder_set_peer_limit", (PyCFunction)ToxCore_group_founder_set_peer_limit, METH_VARARGS,
+    "group_founder_set_peer_limit(group_number, max_peers)\n"
+    "Set the group peer limit."
+  },
+  {
+    "group_toggle_ignore", (PyCFunction)ToxCore_group_toggle_ignore, METH_VARARGS,
+    "group_toggle_ignore(group_number, peer_number, ignore)\n"
+    "Ignore or unignore a peer."
+  },
+  {
+    "group_mod_set_role", (PyCFunction)ToxCore_group_mod_set_role, METH_VARARGS,
+    "group_mod_set_role(group_number, peer_number, role)\n"
+    "Set a peer's role."
+  },
+  {
+    "group_mod_remove_peer", (PyCFunction)ToxCore_group_mod_remove_peer, METH_VARARGS,
+    "group_mod_remove_peer(group_number, peer_number, set_ban)\n"
+    "Kick/ban a peer."
+  },
+  {
+    "group_mod_remove_ban", (PyCFunction)ToxCore_group_mod_remove_ban, METH_VARARGS,
+    "group_mod_remove_ban(group_number, ban_id)\n"
+    "Removes a ban."
+  },
+  {
+    "group_ban_get_list_size", (PyCFunction)ToxCore_group_ban_get_list_size, METH_VARARGS,
+    "group_ban_get_list_size(group_number)\n"
+    "Return the number of entries in the ban list."
+  },
+  {
+    "group_ban_get_list", (PyCFunction)ToxCore_group_ban_get_list, METH_VARARGS,
+    "group_ban_get_list(group_number)\n"
+    "Return a list of valid ban list ID's"
+  },
+  {
+    "group_ban_get_name_size", (PyCFunction)ToxCore_group_ban_get_name_size, METH_VARARGS,
+    "group_ban_get_name_size(group_number, ban_id)\n"
+    "Return the length of the name for the ban list entry."
+  },
+  {
+    "group_ban_get_name", (PyCFunction)ToxCore_group_ban_get_name, METH_VARARGS,
+    "group_ban_get_name(group_number, ban_id)\n"
+    "Return the name of the ban entry designated by ban_id."
+  },
+  {
+    "group_ban_get_time_set", (PyCFunction)ToxCore_group_ban_get_time_set, METH_VARARGS,
+    "group_ban_get_time_set(group_number, ban_id)\n"
+    "Return a time stamp indicating the time the ban was set."
+  },
+  
+  
+#else
   {
     "group_get_title", (PyCFunction)ToxCore_group_get_title, METH_VARARGS,
     "group_get_title(group_number)\n"
@@ -2107,6 +3395,7 @@ PyMethodDef Tox_methods[] = {
     "get_chatlist()\n"
     "Return a list of valid group numbers."
   },
+#endif // -DNEW_GROUPCHATS
   {
     "file_send", (PyCFunction)ToxCore_file_send, METH_VARARGS,
     "file_send(friend_number, kind, file_size, file_id, filename)\n"
@@ -2288,9 +3577,14 @@ void ToxCore_install_dict()
   SET(USER_STATUS_NONE)
   SET(USER_STATUS_AWAY)
   SET(USER_STATUS_BUSY)
+#ifndef LEGACY_GROUPCHATS
+#else
   SET(CHAT_CHANGE_PEER_ADD)
   SET(CHAT_CHANGE_PEER_DEL)
   SET(CHAT_CHANGE_PEER_NAME)
+  SET(GROUPCHAT_TYPE_TEXT)
+  SET(GROUPCHAT_TYPE_AV)
+#endif // -DNEW_GROUPCHATS
       SET(FILE_KIND_DATA)
       SET(FILE_KIND_AVATAR)
       SET(FILE_CONTROL_RESUME)
@@ -2301,8 +3595,6 @@ void ToxCore_install_dict()
       // SET(FILECONTROL_KILL)
       // SET(FILECONTROL_FINISHED)
       // SET(FILECONTROL_RESUME_BROKEN)
-  SET(GROUPCHAT_TYPE_TEXT)
-  SET(GROUPCHAT_TYPE_AV)
 
 #undef SET
 
