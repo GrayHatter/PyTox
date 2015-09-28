@@ -35,11 +35,18 @@
 
 extern PyObject* ToxOpError;
 
+#define TRYCATCH_UNICODE_DECODE_ERROR                                   \
+    if (PyErr_Occurred()) {                                             \
+        int isude = PyErr_ExceptionMatches(PyExc_UnicodeDecodeError);   \
+        fprintf(stderr, "tmpError: ude:%d, maybe UnicodeDecodeError:%s:%d\n", isude, __FILE__, __LINE__); \
+    }
+
 static void callback_self_connection_status(Tox* tox, TOX_CONNECTION connection_status,
                                             void *self)
 {
     PyObject_CallMethod((PyObject*)self, "on_self_connection_status", "i",
                         connection_status);
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_request(Tox* tox, const uint8_t* public_key,
@@ -52,6 +59,8 @@ static void callback_friend_request(Tox* tox, const uint8_t* public_key,
 
   PyObject_CallMethod((PyObject*)self, "on_friend_request", "ss#", buf, data,
       length - (data[length - 1] == 0));
+
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_message(Tox *tox, uint32_t friendnumber, TOX_MESSAGE_TYPE type,
@@ -59,6 +68,7 @@ static void callback_friend_message(Tox *tox, uint32_t friendnumber, TOX_MESSAGE
 {
     PyObject_CallMethod((PyObject*)self, "on_friend_message", "iis#", friendnumber, type,
                         message, length - (message[length - 1] == 0));
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_name(Tox *tox, uint32_t friendnumber,
@@ -66,6 +76,7 @@ static void callback_friend_name(Tox *tox, uint32_t friendnumber,
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_name", "is#", friendnumber,
       newname, length - (newname[length - 1] == 0));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_status_message(Tox *tox, uint32_t friendnumber,
@@ -73,6 +84,7 @@ static void callback_friend_status_message(Tox *tox, uint32_t friendnumber,
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_status_message", "is#", friendnumber,
       newstatus, length - (newstatus[length - 1] == 0));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_status(Tox *tox, uint32_t friendnumber, TOX_USER_STATUS status,
@@ -80,6 +92,7 @@ static void callback_friend_status(Tox *tox, uint32_t friendnumber, TOX_USER_STA
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_status", "ii", friendnumber,
       status);
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_typing(Tox *tox, uint32_t friendnumber,
@@ -87,6 +100,7 @@ static void callback_friend_typing(Tox *tox, uint32_t friendnumber,
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_typing", "iO", friendnumber,
       PyBool_FromLong(is_typing));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_read_receipt(Tox *tox, uint32_t friendnumber,
@@ -94,6 +108,7 @@ static void callback_friend_read_receipt(Tox *tox, uint32_t friendnumber,
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_read_receipt", "ii", friendnumber,
       receipt);
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_friend_connection_status(Tox *tox, uint32_t friendnumber,
@@ -101,6 +116,7 @@ static void callback_friend_connection_status(Tox *tox, uint32_t friendnumber,
 {
   PyObject_CallMethod((PyObject*)self, "on_friend_connection_status", "iO",
       friendnumber, PyBool_FromLong(status));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 // TODO group old api
@@ -109,6 +125,7 @@ static void callback_group_invite(Tox *tox, int32_t friendnumber, uint8_t type,
 {
   PyObject_CallMethod((PyObject*)self, "on_group_invite", "ii" BUF_TC "#",
       friendnumber, type, data, length);
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 // TODO group old api
 static void callback_group_message(Tox *tox, int groupid,
@@ -116,6 +133,7 @@ static void callback_group_message(Tox *tox, int groupid,
 {
   PyObject_CallMethod((PyObject*)self, "on_group_message", "iis#", groupid,
       friendgroupid, message, length - (message[length - 1] == 0));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 // TODO group old api
 static void callback_group_action(Tox *tox, int groupid,
@@ -123,6 +141,7 @@ static void callback_group_action(Tox *tox, int groupid,
 {
   PyObject_CallMethod((PyObject*)self, "on_group_action", "iis#", groupid,
       friendgroupid, action, length - (action[length - 1] == 0));
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_group_namelist_change(Tox *tox, int groupid,
@@ -130,6 +149,7 @@ static void callback_group_namelist_change(Tox *tox, int groupid,
 {
   PyObject_CallMethod((PyObject*)self, "on_group_namelist_change", "iii",
       groupid, peernumber, change);
+  TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_number,
@@ -137,6 +157,7 @@ static void callback_file_chunk_request(Tox *tox, uint32_t friend_number, uint32
 {
     PyObject_CallMethod((PyObject*)self, "on_file_chunk_request", "iiKi",
                         friend_number, file_number, position, length);
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 
@@ -146,6 +167,7 @@ static void callback_file_recv(Tox *tox, uint32_t friend_number, uint32_t file_n
 {
     PyObject_CallMethod((PyObject*)self, "on_file_recv", "iiiKs#",
                         friend_number, file_number, kind, file_size, filename, filename_length);
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_file_recv_control(Tox *tox, uint32_t friend_number, uint32_t file_number,
@@ -153,6 +175,7 @@ static void callback_file_recv_control(Tox *tox, uint32_t friend_number, uint32_
 {
     PyObject_CallMethod((PyObject*)self, "on_file_recv_control", "iii",
                         friend_number, file_number, control);
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void callback_file_recv_chunk(Tox *tox, uint32_t friend_number, uint32_t file_number,
@@ -161,6 +184,7 @@ static void callback_file_recv_chunk(Tox *tox, uint32_t friend_number, uint32_t 
 {
     PyObject_CallMethod((PyObject*)self, "on_file_recv_chunk", "iiK" BUF_TC "#",
                         friend_number, file_number, position, data, length);
+    TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
 static void init_options(PyObject* pyopts, struct Tox_Options* tox_opts)
