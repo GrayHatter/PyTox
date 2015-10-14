@@ -39,6 +39,7 @@ extern PyObject* ToxOpError;
     if (PyErr_Occurred()) {                                             \
         int isude = PyErr_ExceptionMatches(PyExc_UnicodeDecodeError);   \
         fprintf(stderr, "tmpError: ude:%d, maybe UnicodeDecodeError:%s:%d\n", isude, __FILE__, __LINE__); \
+        PyErr_Print();                                                  \
     }
 
 static void callback_self_connection_status(Tox* tox, TOX_CONNECTION connection_status,
@@ -165,8 +166,18 @@ static void callback_file_recv(Tox *tox, uint32_t friend_number, uint32_t file_n
                                uint64_t file_size,
                                const uint8_t *filename, size_t filename_length, void *self)
 {
-    PyObject_CallMethod((PyObject*)self, "on_file_recv", "iiiKs#",
-                        friend_number, file_number, kind, file_size, filename, filename_length);
+    if (kind == TOX_FILE_KIND_AVATAR) {
+        assert(TOX_HASH_LENGTH == filename_length);
+        char filename_hex[TOX_HASH_LENGTH * 2 + 1];
+        memset(filename_hex, 0, TOX_HASH_LENGTH * 2 + 1);
+        bytes_to_hex_string(filename, filename_length, (uint8_t*)filename_hex);
+
+        PyObject_CallMethod((PyObject*)self, "on_file_recv", "iiiKs#",
+                            friend_number, file_number, kind, file_size, filename_hex, TOX_HASH_LENGTH * 2);
+    } else {
+        PyObject_CallMethod((PyObject*)self, "on_file_recv", "iiiKs#",
+                            friend_number, file_number, kind, file_size, filename, filename_length);
+    }
     TRYCATCH_UNICODE_DECODE_ERROR;
 }
 
