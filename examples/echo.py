@@ -29,62 +29,60 @@ from time import sleep
 from os.path import exists
 
 SERVER = [
-    "54.199.139.199",
+    "192.210.149.121",
     33445,
-    "7F9C31FE850E97CEFD4C4591DF93FC757C7C12549DDD55F8EEAECC34FE76C029"
+    "F404ABAA1C99A9D37D61AB54898F56793E1DEF8BD46B1038B9D822E8460FAB67"
 ]
 
 DATA = 'echo.data'
 
+# echo.py features
+# accept friend request
+# echo back friend message
+# accept and answer friend call request
+# send back friend audio/video data
+
 
 class AV(ToxAV):
-    def __init__(self, core, max_calls):
+    def __init__(self, core):
+        super(AV, self).__init__(core)
         self.core = self.get_tox()
-        self.cs = None
-        self.call_type = self.TypeAudio
 
-    def on_invite(self, idx):
-        self.cs = self.get_peer_csettings(idx, 0)
-        self.call_type = self.cs["call_type"]
-
+    def on_call(self, friend_number, audio_enabled, video_enabled):
         print("Incoming %s call from %d:%s ..." % (
-            "video" if self.call_type == self.TypeVideo else "audio", idx,
-            self.core.get_name(self.get_peer_id(idx, 0))))
+            "video" if video_enabled else "audio", friend_number,
+            self.core.friend_get_name(friend_number)))
+        bret = self.answer(friend_number, 48, 64)
+        print("Answered, in call..." + str(bret))
 
-        self.answer(idx, self.call_type)
-        print("Answered, in call...")
+    def on_call_state(self, friend_number, state):
+        print('call state:fn=%d, state=%d' % (friend_number, state))
 
-    def on_start(self, idx):
-        try:
-            self.change_settings(idx, {"max_video_width": 1920,
-                                       "max_video_height": 1080})
-        except:
-            pass
+    def on_bit_rate_status(self, friend_number, audio_bit_rate, video_bit_rate):
+        print('bit rate status: fn=%d, abr=%d, vbr=%d' %
+              (friend_number, audio_bit_rate, video_bit_rate))
 
-        video_enabled = True if self.call_type == self.TypeVideo else False
-        self.prepare_transmission(idx, vide_enabled)
-
-    def on_end(self, idx):
-        self.kill_transmission(idx)
-        print('Call ended')
-
-    def on_cancel(self, idx):
-        self.kill_transmission(idx)
-
-    def on_peer_timeout(self, idx):
-        self.kill_transmission(idx)
-        self.stop_call(idx)
-
-    def on_audio_data(self, idx, size, data):
+    def on_audio_receive_frame(self, friend_number, pcm, sample_count, channels, sampling_rate):
+        # print('audio frame: %d, %d, %d, %d' %
+        #      (friend_number, sample_count, channels, sampling_rate))
+        # print('pcm len:%d, %s' % (len(pcm), str(type(pcm))))
         sys.stdout.write('.')
         sys.stdout.flush()
-        self.send_audio(idx, size, data)
+        bret = self.audio_send_frame(friend_number, pcm, sample_count, channels, sampling_rate)
+        if bret is False:
+            pass
 
-    def on_video_data(self, idx, width, height, data):
+    def on_video_receive_frame(self, friend_number, width, height, frame):
+        # print('video frame: %d, %d, %d, ' % (friend_number, width, height))
         sys.stdout.write('*')
         sys.stdout.flush()
-        self.send_video(idx, width, height, data)
+        bret = self.video_send_frame(friend_number, width, height, frame)
+        if bret is False:
+            print('video send frame error.')
+            pass
 
+    def witerate(self):
+        self.iterate()
 
 class ToxOptions():
     def __init__(self):
@@ -120,7 +118,7 @@ class EchoBot(Tox):
         print('ID: %s' % self.self_get_address())
 
         self.connect()
-        self.av = AV(self, 1)
+        self.av = AV(self)
 
     def connect(self):
         print('connecting...')
@@ -143,6 +141,7 @@ class EchoBot(Tox):
                     self.connect()
                     checked = False
 
+                self.av.witerate()
                 self.iterate()
                 sleep(0.01)
         except KeyboardInterrupt:
@@ -152,6 +151,7 @@ class EchoBot(Tox):
         print('Friend request from %s: %s' % (pk, message))
         self.friend_add_norequest(pk)
         print('Accepted.')
+        save_to_file(self, DATA)
 
     def on_friend_message(self, friendId, type, message):
         name = self.friend_get_name(friendId)
@@ -161,10 +161,12 @@ class EchoBot(Tox):
 
 
 opts = None
+opts = ToxOptions()
+opts.udp_enabled = True
 if len(sys.argv) == 2:
     DATA = sys.argv[1]
     if exists(DATA):
-        opts = ToxOptions()
+        # opts = ToxOptions()
         opts.savedata_data = load_from_file(DATA)
         opts.savedata_length = len(opts.savedata_data)
         opts.savedata_type = Tox.SAVEDATA_TYPE_TOX_SAVE
